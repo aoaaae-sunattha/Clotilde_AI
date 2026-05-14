@@ -1,0 +1,84 @@
+# travelers.yml
+# Mock employee profiles for Clotilde demo.
+# In production: pulled from HR system via employee ID or SSO token.
+# One representative profile per role level.
+
+profiles:
+
+  Operations/Staff:
+    name: Ally Luciate
+    employee_id: EMP-001
+    email: Ally.Luciate@company.com
+    department: Operations
+    level: Operations/Staff
+    cabin_entitlement: Economy only (Y)
+    passport:
+      nationality: TWN
+      expiry: "2028-06-15"
+    preferences:
+      seat: Aisle
+      meal: Standard
+    frequent_flyer: []
+    approver: "Priya Sharma (MGR-002)"
+    notes: "Cost centre: OPS-TH-01"
+
+  Manager/Senior:
+    name: Priya Sharma
+    employee_id: MGR-002
+    email: priya.sharma@company.com
+    department: Finance
+    level: Manager/Senior
+    cabin_entitlement: Economy only (Y)
+    passport:
+      nationality: IN
+      expiry: "2026-11-30"
+    preferences:
+      seat: Window
+      meal: Vegetarian
+    frequent_flyer:
+      - airline: Thai Airways (TG)
+        number: TG-ROP-7823941
+    approver: "James Chen (DIR-003)"
+    notes: "Cost centre: FIN-TH-02"
+
+  Director:
+    name: James Chen
+    employee_id: DIR-003
+    email: james.chen@company.com
+    department: Strategy
+    level: Director
+    cabin_entitlement: Up to Business Class (Y, W, C)
+    passport:
+      nationality: SG
+      expiry: "2027-03-22"
+    preferences:
+      seat: Aisle
+      meal: Standard
+    frequent_flyer:
+      - airline: Singapore Airlines (SQ)
+        number: SQ-KF-4421870
+      - airline: Thai Airways (TG)
+        number: TG-ROP-2219034
+    approver: "Sarah Mitchell (VP-004)"
+    notes: "Cost centre: STR-TH-03. Eligible for lounge access."
+
+  VP/C-Suite:
+    name: Sarah Mitchell
+    employee_id: VP-004
+    email: sarah.mitchell@company.com
+    department: Executive
+    level: VP/C-Suite
+    cabin_entitlement: Up to Business Class (Y, W, C)
+    passport:
+      nationality: GB
+      expiry: "2029-08-10"
+    preferences:
+      seat: Window
+      meal: Gluten-free
+    frequent_flyer:
+      - airline: Emirates (EK)
+        number: EK-SKYWARDS-8834521
+      - airline: Singapore Airlines (SQ)
+        number: SQ-KF-9921034
+    approver: "N/A — self-authorised at VP level"
+    notes: "Cost centre: EXEC-TH-01. Lounge access included."

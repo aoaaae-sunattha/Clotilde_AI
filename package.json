@@ -1,0 +1,25 @@
+{
+  "name": "clotilde",
+  "version": "2.0.0",
+  "description": "Clotilde — AI corporate travel assistant. Demo project for QA interview.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node run_tests.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "dotenv": "^16.4.5",
+    "js-yaml": "^4.1.1",
+    "node-fetch": "^2.7.0",
+    "node-telegram-bot-api": "^0.66.0"
+  },
+  "devDependencies": {
+    "jest": "^30.4.2",
+    "nock": "^14.0.15"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "maxWorkers": 1
+  }
+}

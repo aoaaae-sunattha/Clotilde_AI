@@ -1,0 +1,17 @@
+.env
+node_modules/
+
+# QA test runtime artifacts — regenerated on every run
+QA/tests/.last_notify_output.json
+QA/results/02_automation_raw/
+
+# Playwright auth state (would contain credentials)
+QA/tests/fixtures/.auth*.json
+
+# Runtime data files — contain live booking/chat state
+bookings.json
+chat_registry.json
+approvals.json
+
+# macOS
+.DS_Store
