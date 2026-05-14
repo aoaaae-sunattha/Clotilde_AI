@@ -31,7 +31,7 @@
 | 007 | EX05_role-permission.md | ✅ Complete | 25 ROL tests · INT-086–089 in role-permission.test.js |
 | 008 | 14_test-healer.md | ✅ Complete | 1 Type B (INT-014); 0 Type D · fix-proposals.md saved |
 | 009 | 15_report-writer.md | ✅ Complete | SHIP WITH KNOWN ISSUES · 06-CLOTILDE-final-report.md |
-| 010 | 16_git-commit.md | ⏳ Pending | QA branch + PR — after manual Telegram gate passes |
+| 010 | 16_git-commit.md | ✅ Complete | PR #1 merged to main — 2026-05-14 |
 
 ---
 
