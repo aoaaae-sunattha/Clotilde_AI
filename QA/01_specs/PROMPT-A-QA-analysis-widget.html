@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clotilde — QA Analysis</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --amber: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --tag-bg: #21262d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace; font-size: 13px; padding: 20px; }
+  h1 { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .subtitle { color: var(--muted); font-size: 12px; margin-bottom: 20px; }
+
+  /* Metric row */
+  .metrics { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .metric-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; flex: 1; min-width: 120px; }
+  .metric-box .num { font-size: 26px; font-weight: 700; color: var(--accent); }
+  .metric-box .label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .metric-box.warn .num { color: var(--amber); }
+  .metric-box.danger .num { color: var(--red); }
+  .metric-box.good .num { color: var(--green); }
+
+  /* Coverage bar */
+  .cov-bar { background: var(--border); border-radius: 4px; height: 6px; margin-top: 6px; overflow: hidden; }
+  .cov-fill { height: 100%; border-radius: 4px; background: var(--amber); }
+  .cov-fill.green { background: var(--green); }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 2px; margin-bottom: 0; border-bottom: 1px solid var(--border); }
+  .tab { padding: 8px 16px; cursor: pointer; color: var(--muted); font-size: 12px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-panel { display: none; padding: 20px 0; }
+  .tab-panel.active { display: block; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 8px 12px; font-size: 11px; color: var(--muted); border-bottom: 1px solid var(--border); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface); }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 12px; font-size: 10px; font-weight: 600; }
+  .badge.p0 { background: rgba(248,81,73,0.15); color: var(--red); }
+  .badge.p1 { background: rgba(210,153,34,0.15); color: var(--amber); }
+  .badge.p2 { background: rgba(139,148,158,0.15); color: var(--muted); }
+  .badge.green { background: rgba(63,185,80,0.15); color: var(--green); }
+  .badge.red { background: rgba(248,81,73,0.15); color: var(--red); }
+  .badge.amber { background: rgba(210,153,34,0.15); color: var(--amber); }
+  .badge.blue { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .badge.purple { background: rgba(188,140,255,0.15); color: var(--purple); }
+  .badge.new { background: rgba(210,153,34,0.2); color: var(--amber); border: 1px solid var(--amber); }
+  .badge.existing { background: rgba(63,185,80,0.1); color: var(--green); border: 1px solid var(--green); }
+
+  /* Story cards */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+  .card .story-id { font-weight: 700; font-size: 12px; color: var(--accent); margin-bottom: 4px; }
+  .card .epic { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+  .card .row { display: flex; gap: 4px; flex-wrap: wrap; }
+
+  /* Section headers */
+  .section-header { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin: 16px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+
+  /* Summary line */
+  .summary { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; font-size: 12px; color: var(--muted); }
+  .summary strong { color: var(--text); }
+
+  /* ASCII pre */
+  pre { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 16px; font-size: 11px; color: var(--green); overflow-x: auto; line-height: 1.5; }
+
+  /* Gap row */
+  .gap-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .gap-row:last-child { border-bottom: none; }
+  .gap-row .desc { flex: 1; font-size: 12px; }
+  .gap-row .cat { font-size: 11px; color: var(--muted); margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<h1>Clotilde — QA Analysis Widget</h1>
+<div class="subtitle">Agentic QA Pipeline v3.0 · Phase 1 · 2026-05-14 · Input: CLAUDE.md + 002-CLOTILDE-final.md</div>
+
+<!-- METRIC ROW -->
+<div class="metrics">
+  <div class="metric-box">
+    <div class="num">27</div>
+    <div class="label">Total Stories</div>
+  </div>
+  <div class="metric-box danger">
+    <div class="num">12</div>
+    <div class="label">P0 Stories</div>
+    <div class="cov-bar"><div class="cov-fill" style="width:75%"></div></div>
+    <div class="label" style="margin-top:4px">9/12 have clear test path (75%)</div>
+  </div>
+  <div class="metric-box">
+    <div class="num">5</div>
+    <div class="label">Test Layers</div>
+  </div>
+  <div class="metric-box warn">
+    <div class="num">9</div>
+    <div class="label">QA Gaps Found</div>
+  </div>
+  <div class="metric-box warn">
+    <div class="num">2</div>
+    <div class="label">New Skills Needed</div>
+  </div>
+</div>
+
+<!-- TAB NAV -->
+<div class="tabs">
+  <div class="tab active" onclick="showTab('arch')">Architecture</div>
+  <div class="tab" onclick="showTab('stories')">User Stories</div>
+  <div class="tab" onclick="showTab('gaps')">QA Gaps</div>
+  <div class="tab" onclick="showTab('skills')">Skills</div>
+  <div class="tab" onclick="showTab('flow')">Data Flow</div>
+</div>
+
+<!-- ═══════════════ ARCHITECTURE TAB ═══════════════ -->
+<div id="arch" class="tab-panel active">
+  <div class="section-header">System Components</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Component</th>
+        <th>Technology</th>
+        <th>Test Method</th>
+        <th>Sprint</th>
+        <th>Coverage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>policy.js</strong><br><span style="color:var(--muted);font-size:11px">Policy engine — all travel rules</span></td>
+        <td>Node.js · plain object exports</td>
+        <td>Unit — boundary value (test_policy.js)</td>
+        <td>S0</td>
+        <td><span class="badge green">✅ 41 tests exist</span></td>
+      </tr>
+      <tr>
+        <td><strong>mock_inventory.js</strong><br><span style="color:var(--muted);font-size:11px">Mock GDS — flight/hotel data + compliance</span></td>
+        <td>Node.js · static data + policy.js import</td>
+        <td>Unit — via test_policy.js + FGR section of run_tests.js</td>
+        <td>S0</td>
+        <td><span class="badge green">✅ Covered via FGR</span></td>
+      </tr>
+      <tr>
+        <td><strong>nlu.js + golden_dataset.js</strong><br><span style="color:var(--muted);font-size:11px">Intent classification + test data</span></td>
+        <td>Node.js · Gemini 2.5 Pro API</td>
+        <td>NLU regression (run_tests.js) — 15 cases + FGR</td>
+        <td>S0</td>
+        <td><span class="badge green">✅ 15 cases + FGR</span></td>
+      </tr>
+      <tr>
+        <td><strong>prompt.js</strong><br><span style="color:var(--muted);font-size:11px">formatInventory() · buildContextPacket()</span></td>
+        <td>Node.js · string formatting</td>
+        <td>Unit — FGR tests verify price rendering fidelity</td>
+        <td>S0</td>
+        <td><span class="badge green">✅ FGR in run_tests.js</span></td>
+      </tr>
+      <tr>
+        <td><strong>duffel.js</strong><br><span style="color:var(--muted);font-size:11px">Live flight search + mock fallback</span></td>
+        <td>Node.js · Duffel REST API · Axios</td>
+        <td>Integration — Axios mock intercept (new skill needed)</td>
+        <td>S1</td>
+        <td><span class="badge red">❌ 0 automated tests</span></td>
+      </tr>
+      <tr>
+        <td><strong>agent.js</strong><br><span style="color:var(--muted);font-size:11px">Gemini 2.5 Pro function calling agent</span></td>
+        <td>Node.js · @google/generative-ai SDK</td>
+        <td>Integration — webhook simulation (new skill needed)</td>
+        <td>S1</td>
+        <td><span class="badge red">❌ 0 automated tests</span></td>
+      </tr>
+      <tr>
+        <td><strong>Index.js</strong><br><span style="color:var(--muted);font-size:11px">Telegram bot server · session · keyboards</span></td>
+        <td>Node.js · node-telegram-bot-api · Map sessions</td>
+        <td>Integration — Telegram webhook simulation via HTTP POST</td>
+        <td>S1</td>
+        <td><span class="badge red">❌ 0 automated tests</span></td>
+      </tr>
+      <tr>
+        <td><strong>notify.js</strong><br><span style="color:var(--muted);font-size:11px">17 notification types · CLI</span></td>
+        <td>Node.js · CLI script · child_process</td>
+        <td>CLI automation — shell exec + stdout assertion</td>
+        <td>S1</td>
+        <td><span class="badge red">❌ 0 automated tests</span></td>
+      </tr>
+      <tr>
+        <td><strong>admin.js</strong><br><span style="color:var(--muted);font-size:11px">Admin REPL · 4 Gemini tools</span></td>
+        <td>Node.js · REPL · Gemini Flash</td>
+        <td>Manual only — interactive REPL (no CLI automation feasible)</td>
+        <td>S2</td>
+        <td><span class="badge amber">🟡 Manual demo only</span></td>
+      </tr>
+      <tr>
+        <td><strong>bookings.json</strong><br><span style="color:var(--muted);font-size:11px">Confirmed booking store</span></td>
+        <td>JSON file · Node.js fs</td>
+        <td>File assertion — read + validate PNR/fields after booking confirm</td>
+        <td>S1</td>
+        <td><span class="badge red">❌ 0 automated tests</span></td>
+      </tr>
+      <tr>
+        <td><strong>chat_registry.json</strong><br><span style="color:var(--muted);font-size:11px">employee_id → chat_id map</span></td>
+        <td>JSON file · Node.js fs</td>
+        <td>File assertion — read after /start role selection</td>
+        <td>S1</td>
+        <td><span class="badge red">❌ 0 automated tests</span></td>
+      </tr>
+      <tr>
+        <td><strong>travelers.yml</strong><br><span style="color:var(--muted);font-size:11px">Static traveler profiles · 5 roles</span></td>
+        <td>YAML · js-yaml</td>
+        <td>Unit — profile load test for each role (manual currently)</td>
+        <td>S1</td>
+        <td><span class="badge amber">🟡 No dedicated test</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="section-header" style="margin-top:20px">Test Layer Stack (bottom-up)</div>
+  <table>
+    <thead><tr><th>#</th><th>Layer</th><th>Tool</th><th>Skill</th><th>P0 stories covered</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>L1</strong></td>
+        <td>Policy Unit Tests</td>
+        <td><code>node test_policy.js</code></td>
+        <td><span class="badge existing">Existing</span> test_policy.js</td>
+        <td>US-007, US-026</td>
+      </tr>
+      <tr>
+        <td><strong>L2</strong></td>
+        <td>NLU Regression + FGR</td>
+        <td><code>node run_tests.js</code></td>
+        <td><span class="badge existing">Existing</span> run_tests.js</td>
+        <td>US-010, US-011, US-012, US-013</td>
+      </tr>
+      <tr>
+        <td><strong>L3</strong></td>
+        <td>Node.js Integration Tests<br><span style="color:var(--muted)">Telegram webhook simulation · file assertions</span></td>
+        <td>Node.js + Axios + jest / node:test</td>
+        <td><span class="badge new">NEW</span> node-integration-test skill</td>
+        <td>US-001, 002, 003, 005, 006, 008, 009</td>
+      </tr>
+      <tr>
+        <td><strong>L4</strong></td>
+        <td>CLI Automation<br><span style="color:var(--muted)">notify.js shell execution · stdout assertion</span></td>
+        <td>Node.js child_process / jest</td>
+        <td><span class="badge new">NEW</span> cli-automation skill</td>
+        <td>US-022, US-023, US-024</td>
+      </tr>
+      <tr>
+        <td><strong>L5</strong></td>
+        <td>Manual Telegram Exploratory<br><span style="color:var(--muted)">Live bot interaction via Telegram app</span></td>
+        <td>Telegram app (manual) / Telegram Web</td>
+        <td><span class="badge existing">Modified</span> 12_exploratory-testing.md</td>
+        <td>US-004, 015, 016, 017, 018, 019, 020</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════════ USER STORIES TAB ═══════════════ -->
+<div id="stories" class="tab-panel">
+  <div class="summary">
+    <strong>9 of 12 P0 stories</strong> have a clear automated test path (75%).
+    3 P0 stories (US-001, US-002, US-003) require the new Node.js integration test skill (L3) — not yet written.
+    All 15 P1 stories have a test path via L3 (integration), L4 (CLI), or L5 (manual).
+  </div>
+
+  <div class="section-header">EP-01 — Flight Booking Pipeline (P0 / P1)</div>
+  <div class="card-grid">
+    <div class="card"><div class="story-id">US-001</div><div class="epic">Flight Booking Pipeline</div><div class="row"><span class="badge p0">P0</span><span class="badge amber">L3 Integration</span></div></div>
+    <div class="card"><div class="story-id">US-002</div><div class="epic">Slot-filling NLU</div><div class="row"><span class="badge p0">P0</span><span class="badge amber">L3 Integration</span></div></div>
+    <div class="card"><div class="story-id">US-003</div><div class="epic">Duffel fallback</div><div class="row"><span class="badge p0">P0</span><span class="badge amber">L3 Integration</span></div></div>
+    <div class="card"><div class="story-id">US-004</div><div class="epic">Idempotency guard</div><div class="row"><span class="badge p1">P1</span><span class="badge blue">L5 Manual</span></div></div>
+  </div>
+
+  <div class="section-header">EP-02 — Policy Compliance Engine (P0)</div>
+  <div class="card-grid">
+    <div class="card"><div class="story-id">US-005</div><div class="epic">Compliance display</div><div class="row"><span class="badge p0">P0</span><span class="badge green">L1 Policy</span></div></div>
+    <div class="card"><div class="story-id">US-006</div><div class="epic">Out-of-policy flag</div><div class="row"><span class="badge p0">P0</span><span class="badge green">L1 Policy</span></div></div>
+    <div class="card"><div class="story-id">US-007</div><div class="epic">Boundary value tests</div><div class="row"><span class="badge p0">P0</span><span class="badge green">L1 Policy ✅</span></div></div>
+    <div class="card"><div class="story-id">US-008</div><div class="epic">Cabin class enforcement</div><div class="row"><span class="badge p0">P0</span><span class="badge green">L1 Policy</span></div></div>
+    <div class="card"><div class="story-id">US-009</div><div class="epic">Justification flow</div><div class="row"><span class="badge p0">P0</span><span class="badge amber">L3 Integration</span></div></div>
+  </div>
+
+  <div class="section-header">EP-03 — NLU & AI Quality (P0 / P1)</div>
+  <div class="card-grid">
+    <div class="card"><div class="story-id">US-010</div><div class="epic">NLU regression suite</div><div class="row"><span class="badge p0">P0</span><span class="badge green">L2 NLU ✅</span></div></div>
+    <div class="card"><div class="story-id">US-011</div><div class="epic">Slang / synonyms</div><div class="row"><span class="badge p0">P0</span><span class="badge green">L2 NLU ✅</span></div></div>
+    <div class="card"><div class="story-id">US-012</div><div class="epic">Negation handling</div><div class="row"><span class="badge p0">P0</span><span class="badge green">L2 NLU ✅</span></div></div>
+    <div class="card"><div class="story-id">US-013</div><div class="epic">FGR / hallucination</div><div class="row"><span class="badge p0">P0</span><span class="badge green">L2 FGR ✅</span></div></div>
+    <div class="card"><div class="story-id">US-014</div><div class="epic">Out-of-scope handling</div><div class="row"><span class="badge p1">P1</span><span class="badge green">L2 NLU</span></div></div>
+  </div>
+
+  <div class="section-header">EP-04 — Human Escalation (P1)</div>
+  <div class="card-grid">
+    <div class="card"><div class="story-id">US-015</div><div class="epic">Escalation trigger</div><div class="row"><span class="badge p1">P1</span><span class="badge blue">L5 Manual</span></div></div>
+    <div class="card"><div class="story-id">US-016</div><div class="epic">Context packet</div><div class="row"><span class="badge p1">P1</span><span class="badge blue">L5 Manual</span></div></div>
+    <div class="card"><div class="story-id">US-017</div><div class="epic">Fallback contact</div><div class="row"><span class="badge p1">P1</span><span class="badge amber">L3 Integration</span></div></div>
+  </div>
+
+  <div class="section-header">EP-05 — Approval Workflow (P1)</div>
+  <div class="card-grid">
+    <div class="card"><div class="story-id">US-018</div><div class="epic">Approval flow</div><div class="row"><span class="badge p1">P1</span><span class="badge blue">L5 Manual</span></div></div>
+    <div class="card"><div class="story-id">US-019</div><div class="epic">Rejection flow</div><div class="row"><span class="badge p1">P1</span><span class="badge blue">L5 Manual</span></div></div>
+    <div class="card"><div class="story-id">US-020</div><div class="epic">Self-approval block</div><div class="row"><span class="badge p1">P1</span><span class="badge amber">L3 Integration</span></div></div>
+    <div class="card"><div class="story-id">US-021</div><div class="epic">In-policy skips approval</div><div class="row"><span class="badge p1">P1</span><span class="badge amber">L3 Integration</span></div></div>
+  </div>
+
+  <div class="section-header">EP-06 — Notification System (P1)</div>
+  <div class="card-grid">
+    <div class="card"><div class="story-id">US-022</div><div class="epic">Notification delivery</div><div class="row"><span class="badge p1">P1</span><span class="badge purple">L4 CLI</span></div></div>
+    <div class="card"><div class="story-id">US-023</div><div class="epic">Unknown employee_id</div><div class="row"><span class="badge p1">P1</span><span class="badge purple">L4 CLI</span></div></div>
+    <div class="card"><div class="story-id">US-024</div><div class="epic">17 notification types</div><div class="row"><span class="badge p1">P1</span><span class="badge purple">L4 CLI</span></div></div>
+  </div>
+
+  <div class="section-header">EP-07 — Hotel Booking Pipeline (P1)</div>
+  <div class="card-grid">
+    <div class="card"><div class="story-id">US-025</div><div class="epic">Hotel search + confirm</div><div class="row"><span class="badge p1">P1</span><span class="badge amber">L3 Integration</span></div></div>
+    <div class="card"><div class="story-id">US-026</div><div class="epic">Hotel cap boundary</div><div class="row"><span class="badge p1">P1</span><span class="badge green">L1 Policy ✅</span></div></div>
+    <div class="card"><div class="story-id">US-027</div><div class="epic">Hotel out-of-policy</div><div class="row"><span class="badge p1">P1</span><span class="badge amber">L3 Integration</span></div></div>
+  </div>
+</div>
+
+<!-- ═══════════════ QA GAPS TAB ═══════════════ -->
+<div id="gaps" class="tab-panel">
+
+  <div class="section-header">Category (a) — Missing Test Files: Layers with 0 tests</div>
+  <div class="gap-row">
+    <span class="badge red">Critical</span>
+    <div><div class="desc"><strong>Index.js has 0 automated tests</strong> — Telegram bot server handles all session state, role selection, booking confirm, approval callbacks. No test coverage at all.</div><div class="cat">Layer: L3 Integration · Stories blocked: US-001, 002, 004, 009, 018, 019, 021</div></div>
+  </div>
+  <div class="gap-row">
+    <span class="badge red">Critical</span>
+    <div><div class="desc"><strong>agent.js has 0 automated tests</strong> — Gemini function calling agent is the core NLU/dispatch layer. Only golden_dataset tests the NLU output, not the agent orchestration loop.</div><div class="cat">Layer: L3 Integration · Stories blocked: US-001, 002, 003, 015</div></div>
+  </div>
+  <div class="gap-row">
+    <span class="badge amber">High</span>
+    <div><div class="desc"><strong>notify.js has 0 automated tests</strong> — 17 notification types with 0 coverage. Manual-only currently.</div><div class="cat">Layer: L4 CLI · Stories blocked: US-022, 023, 024</div></div>
+  </div>
+  <div class="gap-row">
+    <span class="badge amber">High</span>
+    <div><div class="desc"><strong>duffel.js fallback has 0 automated tests</strong> — Duffel error → mock fallback path untested. US-003 relies on this.</div><div class="cat">Layer: L3 Integration · Stories blocked: US-003</div></div>
+  </div>
+
+  <div class="section-header">Category (b) — Missing Skills: Test types with no matching skill</div>
+  <div class="gap-row">
+    <span class="badge red">Critical</span>
+    <div><div class="desc"><strong>No Telegram webhook integration test skill</strong> — No skill covers simulating Telegram webhook POST requests to Index.js and asserting bot responses. Playwright does not apply (no web UI). A new Node.js integration test skill is required.</div><div class="cat">Gap: NEW skill needed — node-integration-test · Affects L3 entirely</div></div>
+  </div>
+  <div class="gap-row">
+    <span class="badge amber">High</span>
+    <div><div class="desc"><strong>No CLI automation skill for notify.js</strong> — No skill covers shell exec of Node.js CLI scripts + stdout/exit-code assertion. A new CLI automation skill is required.</div><div class="cat">Gap: NEW skill needed — cli-automation · Affects L4 entirely</div></div>
+  </div>
+
+  <div class="section-header">Category (c) — Missing AC Coverage</div>
+  <div class="gap-row">
+    <span class="badge amber">High</span>
+    <div><div class="desc"><strong>approvals.json not confirmed implemented</strong> — US-009, US-018, US-027 all reference approvals.json as the approval record store. This file is not mentioned in CLAUDE.md. AC coverage depends on this file existing.</div><div class="cat">Affects: US-009 AC-2, US-018 AC-2, US-027 AC-2</div></div>
+  </div>
+  <div class="gap-row">
+    <span class="badge yellow">Medium</span>
+    <div><div class="desc"><strong>Advance booking 3-day rule not wired to block</strong> — policy.js has advanceBookingDays:3 but US-021 notes it is not enforced in the booking flow. No test coverage for this rule at L3.</div><div class="cat">Affects: US-021 Out of Scope — tracked as future gap</div></div>
+  </div>
+
+  <div class="section-header">Category (d) — Missing Folder Structure</div>
+  <div class="gap-row">
+    <span class="badge yellow">Medium</span>
+    <div><div class="desc"><strong>No QA/01_specs test case files exist yet</strong> — COMP and E2E manual test case files not written. Phase 2 will produce these.</div><div class="cat">Resolved by: Phase 2 (Step 02-COMP + 02-E2E)</div></div>
+  </div>
+
+  <div class="section-header">Category (g) — Missing Test Data Strategy</div>
+  <div class="gap-row">
+    <span class="badge amber">High</span>
+    <div><div class="desc"><strong>No test data teardown strategy</strong> — bookings.json and chat_registry.json accumulate state across test runs. No fixture reset between test runs defined. Tests may conflict with leftover data.</div><div class="cat">Needed: test fixture reset script — truncate bookings.json + chat_registry.json before each test suite</div></div>
+  </div>
+
+</div>
+
+<!-- ═══════════════ SKILLS TAB ═══════════════ -->
+<div id="skills" class="tab-panel">
+
+  <div class="summary">
+    <strong>5 skills active</strong> for this project · <strong>2 new skills</strong> to create before Phase 3 · Playwright SKIPPED (no web UI)
+  </div>
+
+  <table>
+    <thead><tr><th>Skill</th><th>What it covers</th><th>Stories it serves</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>test_policy.js</code><br><small>Policy boundary tests</small></td>
+        <td>All policy.js rules at exact boundary values — hotel caps, flight caps, cabin class, advance booking, preferred airlines</td>
+        <td>US-007, US-026, US-005, US-006, US-008</td>
+        <td><span class="badge existing">Existing ✅</span></td>
+      </tr>
+      <tr>
+        <td><code>run_tests.js</code><br><small>NLU regression + FGR</small></td>
+        <td>Intent classification (15 golden dataset cases) + Fact Grounding Rate (price rendering fidelity)</td>
+        <td>US-010, US-011, US-012, US-013, US-014</td>
+        <td><span class="badge existing">Existing ✅</span></td>
+      </tr>
+      <tr>
+        <td><code>12_exploratory-testing.md</code><br><small>Modified for Telegram</small></td>
+        <td>Manual Telegram bot interaction — role selection, booking flow, escalation, approval buttons</td>
+        <td>US-001, 004, 015, 016, 017, 018, 019, 020</td>
+        <td><span class="badge existing">Modified ✅</span></td>
+      </tr>
+      <tr style="background:rgba(210,153,34,0.05)">
+        <td><code>node-integration-test</code><br><small>NEW — to create</small></td>
+        <td>Simulates Telegram webhook POST to Index.js · asserts bot response messages · reads bookings.json and chat_registry.json for state verification · mocks Gemini API and Duffel API with nock/jest · tests session flows end-to-end at HTTP layer without live Telegram connection</td>
+        <td>US-001, 002, 003, 005, 006, 008, 009, 017, 020, 021, 025, 027</td>
+        <td><span class="badge new">NEW — pending creation</span></td>
+      </tr>
+      <tr style="background:rgba(210,153,34,0.05)">
+        <td><code>cli-automation</code><br><small>NEW — to create</small></td>
+        <td>Shell-executes <code>node notify.js</code> with various arguments · asserts stdout message content · asserts process exit code · reads chat_registry.json to verify resolution</td>
+        <td>US-022, US-023, US-024</td>
+        <td><span class="badge new">NEW — pending creation</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="section-header" style="margin-top:20px">Skill Decision Tree</div>
+  <pre>
+  What are you testing?
+  │
+  ├─ policy.js rule boundary (cap, class, advance booking)
+  │     └──► node test_policy.js          [L1 — existing]
+  │
+  ├─ Intent classification / entity extraction / FGR
+  │     └──► node run_tests.js            [L2 — existing]
+  │
+  ├─ Bot behaviour: session, role, booking, approval, fallback
+  │     └──► node-integration-test skill  [L3 — NEW]
+  │               Approach: HTTP POST to bot webhook endpoint
+  │               Mock: Gemini API (nock) · Duffel API (nock)
+  │               Assert: bot reply text · bookings.json · chat_registry.json
+  │
+  ├─ CLI notification delivery / error handling
+  │     └──► cli-automation skill         [L4 — NEW]
+  │               Approach: child_process.execSync('node notify.js ...')
+  │               Assert: stdout content · exit code · Telegram send call
+  │
+  └─ Multi-turn approval flow / escalation button / human agent
+        └──► Manual Telegram testing      [L5 — modified 12_exploratory]
+                  Live bot via @BotFather token
+                  Record: exact message text · button labels · state transitions
+  </pre>
+
+  <div class="section-header" style="margin-top:16px">Skills SKIPPED for this project</div>
+  <table>
+    <thead><tr><th>Skill</th><th>Reason skipped</th></tr></thead>
+    <tbody>
+      <tr><td>Playwright (04-test-generator)</td><td>No web UI — Telegram bot only. No browser URL exists.</td></tr>
+      <tr><td>EX-01 Accessibility</td><td>No web UI to audit. Telegram renders its own UI.</td></tr>
+      <tr><td>EX-04 Visual regression</td><td>No web UI to screenshot.</td></tr>
+      <tr><td>EX-07 Mobile viewport</td><td>No web UI. Telegram mobile is handled by Telegram itself.</td></tr>
+      <tr><td>EX-08 Test data manager (SQL seeds)</td><td>No database. File-based store (bookings.json). Fixture reset script instead.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════════ DATA FLOW TAB ═══════════════ -->
+<div id="flow" class="tab-panel">
+  <div class="summary">Happy-path: Staff employee books a compliant economy flight BKK → SIN via Telegram.</div>
+
+  <pre>
+  ┌─────────────┐
+  │  Traveler   │  (Staff employee — mobile/desktop Telegram app)
+  └──────┬──────┘
+         │  1. Sends /start command
+         ▼
+  ┌─────────────────────────┐
+  │   Telegram API           │  (Telegram servers — webhook delivery)
+  │   POST /webhook          │
+  └──────────┬──────────────┘
+             │  2. HTTP POST → Index.js webhook handler
+             ▼
+  ┌─────────────────────────┐
+  │   Index.js               │  node-telegram-bot-api
+  │   handleMessage()        │  getSession() → awaitingRole:true
+  └──────────┬──────────────┘
+             │  3. Displays role selection inline keyboard
+             ▼
+  ┌─────────────────────────┐
+  │   Traveler taps role:   │  callback_query: role_select:Operations
+  │   "Operations"          │
+  └──────────┬──────────────┘
+             │  4. Index.js: setRole() → travelers.yml → getProfile('Operations')
+             │     chat_registry.json ← employee_id:chat_id written
+             ▼
+  ┌─────────────────────────┐
+  │   Index.js               │  session.role = 'Operations'
+  │   session ready          │  session.travelerProfile loaded
+  └──────────┬──────────────┘
+             │  5. Traveler sends: "Find me a flight to Singapore on June 1"
+             ▼
+  ┌─────────────────────────┐
+  │   agent.js               │  Gemini 2.5 Pro
+  │   runAgent()             │  System prompt: today's date + traveler profile + policy
+  └──────────┬──────────────┘
+             │  6. Gemini decides → function_call: search_flights
+             │     { origin:'BKK', destination:'SIN', date:'2026-06-01', cabin:'Y' }
+             ▼
+  ┌─────────────────────────┐
+  │   duffel.js              │  Duffel REST API (live)
+  │   searchFlights()        │  OR mock_inventory.js (fallback on error)
+  └──────────┬──────────────┘
+             │  7. Returns raw flight array
+             ▼
+  ┌─────────────────────────┐
+  │   mock_inventory.js      │  getMockFlights() → compliance flags computed
+  │   policy.js              │  is_compliant · is_preferred per POLICY rules
+  └──────────┬──────────────┘
+             │  8. Compliance-annotated flight array returned to agent.js
+             ▼
+  ┌─────────────────────────┐
+  │   agent.js               │  Sends minimal metadata back to Gemini
+  │   formatInventory()      │  prompt.js: Markdown table with compliance labels
+  └──────────┬──────────────┘
+             │  9. Index.js: sendReply() → Telegram sendMessage
+             │     + inline keyboard: [Select Flight 1] [Select Flight 2] ...
+             ▼
+  ┌─────────────────────────┐
+  │   Traveler selects       │  callback_query: select_flight:TG401
+  │   Thai Airways TG401     │
+  └──────────┬──────────────┘
+             │  10. Index.js: session.selectedOption = TG401 flight object
+             │      Displays [Confirm Booking] [Cancel] keyboard
+             ▼
+  ┌─────────────────────────┐
+  │   Traveler taps Confirm  │  callback_query: booking_confirm
+  └──────────┬──────────────┘
+             │  11. Index.js: proceedWithBooking()
+             │      bookingInProgress guard engaged
+             │      is_compliant: true → no justification required
+             ▼
+  ┌─────────────────────────┐
+  │   Index.js               │  generatePNR() → 6-char alphanumeric
+  │   saveBooking()          │  bookings.json ← record written
+  └──────────┬──────────────┘
+             │  12. Telegram sendMessage: "✅ Booking confirmed! PNR: AB1234"
+             ▼
+  ┌─────────────────────────┐
+  │   Traveler               │  Receives PNR confirmation in Telegram chat
+  └─────────────────────────┘
+
+  Note: Every labeled arrow = at least one test case needed.
+  ─────────────────────────────────────────────────────────────────
+  Arrow 2  → L3 Integration test: POST webhook, assert role keyboard
+  Arrow 4  → L3 Integration test: assert chat_registry.json entry
+  Arrow 6  → L3 Integration test: assert search_flights called with correct params
+  Arrow 7  → L3 Integration test: assert fallback on Duffel error (US-003)
+  Arrow 9  → L3 Integration test: assert formatted reply contains TG401 · is_preferred
+  Arrow 11 → L3 Integration test: assert PNR generated · bookings.json updated
+  Arrow 11 → L1 Policy test: assert is_compliant:true for this flight (US-005)
+  Arrow 12 → L3 Integration test: assert confirmation message text contains PNR
+  </pre>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
