@@ -1,7 +1,5 @@
 # Clotilde — AI Corporate Travel Assistant
 
-[![Notion](https://img.shields.io/badge/Notion-Project%20Report-black?logo=notion&logoColor=white)](https://www.notion.so/AI-Enhanced-Exchange-Testing-Project-Report-355dee0fbb3e8157bae8c776caf65c59)
-
 Clotilde is a Telegram-based AI travel assistant for corporate travelers, powered by **Gemini 2.5 Pro** with function calling. It searches live flights via the Duffel API, applies company travel policy, and handles the full booking lifecycle — search, select, confirm, and notify.
 
 > Demo project for QA interview preparation, simulating Claire (American Express GBT).
