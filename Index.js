@@ -84,7 +84,7 @@ async function checkEntryRequirements(nationalityCode, destinationIata) {
 
   const nationality = NATIONALITY_NAMES[nationalityCode] || nationalityCode;
   const genAI       = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model       = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  const model       = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
   const prompt =
     `You are a travel entry requirements assistant. Reply ONLY with valid JSON — no markdown, no prose.\n\n` +
