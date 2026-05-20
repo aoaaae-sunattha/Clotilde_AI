@@ -184,3 +184,159 @@ Clotilde_AI/
 - **Flight data:** Duffel API v2
 - **Config:** YAML traveler profiles via `js-yaml`
 - **Testing:** Postman / Newman
+
+---
+
+## ✈ V2 — Web Interface + Cypress QA Layer
+
+### V2 Overview
+
+V1 (above) is a Telegram bot — it has no browser surface, so Cypress cannot test it directly. V2 adds a thin Express REST API and a plain HTML single-page app (SPA) on top of V1's existing logic, without modifying any V1 file. This creates a testable web interface that mirrors the bot's booking flow.
+
+The purpose of V2 is to demonstrate full-stack QA engineering for the 30SecondsToFly / Claire QA role — specifically: SPA frontend E2E testing, API contract testing, travel policy compliance testing, GenAI output regression detection, and GitHub Actions CI/CD integration. All powered by Cypress 13.
+
+---
+
+### V2 Branch Strategy
+
+```
+main             ← V1 Telegram bot only (this README, untouched)
+v2-web-cypress   ← V1 + web layer + Cypress test suite
+```
+
+V2 adds only new files — no V1 file is modified, renamed, or deleted on either branch.
+
+---
+
+### V2 Project Structure (New Files Only)
+
+```
+── V2 NEW FILES (v2-web-cypress branch) ────────────────
+
+cypress.config.js               ← Cypress config at project root
+
+api/
+  server.js                     ← Express REST API adapter
+  routes/
+    search.js                   ← POST /api/search
+    book.js                     ← POST /api/book
+  middleware/
+    validate.js                 ← Request validation
+    errorHandler.js             ← Centralised error responses
+
+web/
+  index.html                    ← Single-page booking UI (plain HTML/JS)
+
+cypress/
+  e2e/
+    booking/booking_flow.cy.js        ← E2E: full booking flow
+    api/api_contract.cy.js            ← API: schema + error handling
+    policy/policy_compliance.cy.js    ← Policy: cabin violation flags
+    regression/ai_regression.cy.js    ← GenAI: output drift detection
+  fixtures/
+    ai_baselines.json                 ← Stored AI baseline for regression
+    mock_flight.json
+  support/
+    e2e.js                            ← Cypress support entry point
+    commands.js                       ← Custom commands
+    pages/
+      BookingPage.js                  ← Page Object: form elements
+      ResultsPage.js                  ← Page Object: results + confirmation
+  screenshots/
+  videos/
+
+reports/                        ← Mochawesome HTML test reports (at root)
+scripts/
+  update_baselines.js           ← Manual baseline updater (never run by CI)
+
+.github/workflows/cypress.yml   ← GitHub Actions CI pipeline
+```
+
+---
+
+### V2 Installation
+
+```bash
+git checkout v2-web-cypress
+npm install
+```
+
+No new environment variables are required to run the Cypress tests. Mock mode bypasses all external APIs.
+
+---
+
+### V2 Running the Web Layer
+
+```bash
+# Terminal 1 — Start API server in mock mode (no API key needed)
+npm run start:api:mock
+
+# Terminal 2 — Serve the web SPA
+npm run start:web
+
+# Open in browser
+open http://localhost:3000
+```
+
+---
+
+### V2 Running Cypress Tests
+
+```bash
+# Run all tests headlessly — same as CI
+npm run cypress:run
+
+# Open interactive Cypress Test Runner
+npm run cypress:open
+
+# Start both servers + run tests in one command
+npm run test:ci
+
+# Update GenAI baseline fixture (manual only — never run by CI)
+npm run cypress:update-baselines
+```
+
+> **Note:** `npm run test:ci` handles server startup automatically. For `cypress:run` or `cypress:open`, start both servers first.
+
+---
+
+### V2 Test Suite
+
+| Spec | Type | Story | What It Tests |
+|---|---|---|---|
+| `booking/booking_flow.cy.js` | E2E | US-010 | Search → select → confirm → PNR visible |
+| `api/api_contract.cy.js` | API | US-011, US-012 | Endpoint schema, status codes, error messages |
+| `policy/policy_compliance.cy.js` | Policy | US-013 | Cabin violation flags in API + UI badges |
+| `regression/ai_regression.cy.js` | GenAI Regression | US-015, US-016 | AI output drift detection via baseline comparison |
+
+---
+
+### V2 GenAI Regression — How It Works
+
+- `ai_baselines.json` stores the expected output (airline, price, cabin class, result count) from a fixed search payload.
+- If the AI output changes (e.g. after a prompt edit), the regression test fails and shows: `Expected: "Thai Airways" | Got: "Bangkok Air"`.
+- To reset after an intentional change: run `npm run cypress:update-baselines` locally, review the diff, then commit.
+
+---
+
+### V2 CI/CD Pipeline
+
+- GitHub Actions runs on every push to `v2-web-cypress` and all pull requests to `main`
+- Starts API (mock mode) + web server → waits → runs `cypress run --headless --browser chrome`
+- HTML test reports uploaded as `cypress-results` artifact after every run (`if: always()`)
+- Failing test = red ✗ on the commit, merge blocked
+
+```
+![Cypress Tests](https://github.com/aoaaae-sunattha/Clotilde_AI/actions/workflows/cypress.yml/badge.svg?branch=v2-web-cypress)
+```
+
+---
+
+### V2 Key Design Decisions
+
+| Decision | Why |
+|---|---|
+| Plain HTML/JS (no framework) | No build step — simpler CI, fewer failure points. Cypress tests the DOM identically regardless of framework. |
+| Mock mode for CI (`USE_MOCK=true`) | Fully deterministic tests without real API keys. CI runs cleanly on every push for free. |
+| Page Object Model | All `data-cy` selectors live in `BookingPage.js` and `ResultsPage.js`. Zero raw `cy.get()` in spec files — one place to update when UI changes. |
+| Baseline fixtures for GenAI regression | AI output is non-deterministic in live mode. Storing key fields as JSON catches unintended prompt drift without testing the full response text. |
