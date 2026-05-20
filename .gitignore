@@ -14,7 +14,10 @@ chat_registry.json
 approvals.json
 
 # Cypress generated reports (uploaded as CI artifacts, not committed)
-cypress/reports/
+reports/
+cypress/screenshots/
+cypress/videos/
+cypress/downloads/
 
 # macOS
 .DS_Store

@@ -44,5 +44,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cypress-results
-          path: cypress/reports/
+          path: reports/
           retention-days: 7
