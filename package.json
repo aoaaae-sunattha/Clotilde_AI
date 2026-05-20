@@ -5,18 +5,34 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "node run_tests.js"
+    "test": "node run_tests.js",
+    "start:api": "node api/server.js",
+    "start:api:mock": "USE_MOCK=true node api/server.js",
+    "start:web": "npx serve web -p 3000",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run --headless --browser chrome",
+    "cypress:update-baselines": "node scripts/update_baselines.js",
+    "test:ci": "concurrently --kill-others-on-fail \"npm run start:api:mock\" \"npx wait-on http://localhost:3001/health && npm run cypress:run\""
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
+    "express": "^4.18.0",
     "js-yaml": "^4.1.1",
     "node-fetch": "^2.7.0",
     "node-telegram-bot-api": "^0.66.0"
   },
   "devDependencies": {
+    "concurrently": "^8.0.0",
+    "cypress": "^13.0.0",
     "jest": "^30.4.2",
-    "nock": "^14.0.15"
+    "mochawesome": "^7.1.3",
+    "mochawesome-merge": "^4.3.0",
+    "mochawesome-report-generator": "^6.2.0",
+    "nock": "^14.0.15",
+    "serve": "^14.0.0",
+    "wait-on": "^7.2.0"
   },
   "jest": {
     "testEnvironment": "node",

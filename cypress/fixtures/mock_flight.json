@@ -1,0 +1,11 @@
+{
+  "flightId": "FL-MOCK-001",
+  "airline": "Thai Airways",
+  "origin": "BKK",
+  "destination": "NRT",
+  "departureDate": "2026-08-01",
+  "cabinClass": "economy",
+  "price": 120,
+  "policyCompliant": true,
+  "policyFlags": []
+}

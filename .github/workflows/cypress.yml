@@ -1,0 +1,48 @@
+name: Cypress Tests
+
+on:
+  push:
+    branches: [v2-web-cypress, main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  cypress-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start API server (mock mode)
+        run: node api/server.js &
+        env:
+          USE_MOCK: 'true'
+          API_PORT: 3001
+          ALLOWED_ORIGIN: 'http://localhost:3000'
+
+      - name: Start web server
+        run: npx serve web -p 3000 &
+
+      - name: Wait for both servers
+        run: npx wait-on http://localhost:3001/health http://localhost:3000 --timeout 30000
+
+      - name: Run Cypress tests
+        run: npm run cypress:run
+        env:
+          CYPRESS_apiUrl: 'http://localhost:3001'
+          CYPRESS_baseUrl: 'http://localhost:3000'
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-results
+          path: cypress/reports/
+          retention-days: 7

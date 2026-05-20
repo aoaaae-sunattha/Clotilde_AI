@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clotilde — Corporate Travel Assistant</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      padding: 24px;
+      color: #1a202c;
+    }
+    header {
+      max-width: 800px;
+      margin: 0 auto 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header h1 { font-size: 1.5rem; font-weight: 700; color: #2b6cb0; }
+    header span { font-size: 0.85rem; color: #718096; }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 24px;
+      max-width: 800px;
+      margin: 0 auto 20px;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .search-row select,
+    .search-row input[type="date"] {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.95rem;
+      background: #f7fafc;
+      color: #2d3748;
+    }
+    .search-row select { min-width: 130px; }
+    .search-row input[type="date"] { min-width: 160px; }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+    }
+    #search-input-el {
+      flex: 1;
+      border: 1.5px solid #bee3f8;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #search-input-el:focus { border-color: #3182ce; }
+
+    #send-btn-el {
+      background: #3182ce;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+      white-space: nowrap;
+    }
+    #send-btn-el:hover { background: #2b6cb0; }
+    #send-btn-el:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    #error-msg-el {
+      color: #e53e3e;
+      font-size: 0.875rem;
+      margin-top: 8px;
+      display: none;
+    }
+
+    #results-list-el { display: none; }
+
+    .results-header {
+      font-size: 0.8rem;
+      color: #718096;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .result-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 12px;
+      background: #f7fafc;
+      transition: border-color 0.15s, background 0.15s;
+      cursor: pointer;
+    }
+    .result-card.selected {
+      border-color: #3182ce;
+      background: #ebf8ff;
+    }
+    .result-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .result-airline { font-weight: 700; font-size: 1rem; }
+    .result-price { font-size: 1.1rem; font-weight: 700; color: #2b6cb0; }
+    .result-meta {
+      display: flex;
+      gap: 16px;
+      font-size: 0.875rem;
+      color: #4a5568;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .result-route { font-weight: 600; }
+    .result-cabin { text-transform: capitalize; }
+
+    .policy-badge {
+      background: #fff5f5;
+      color: #e53e3e;
+      border: 1px solid #feb2b2;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .select-btn {
+      background: #edf2f7;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 0.875rem;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.15s;
+    }
+    .select-btn:hover { background: #bee3f8; }
+    .select-btn.active { background: #3182ce; color: #fff; border-color: #3182ce; }
+
+    #no-results-msg-el {
+      text-align: center;
+      color: #718096;
+      padding: 32px 0;
+      display: none;
+    }
+
+    #confirm-btn-el {
+      display: none;
+      background: #38a169;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 32px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.2s, opacity 0.2s;
+    }
+    #confirm-btn-el:hover { background: #2f855a; }
+    #confirm-btn-el:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    #confirmation-screen-el {
+      display: none;
+      text-align: center;
+      padding: 16px 0;
+    }
+    .confirmation-icon { font-size: 3rem; margin-bottom: 12px; }
+    .confirmation-title { font-size: 1.25rem; font-weight: 700; color: #2f855a; margin-bottom: 8px; }
+    #pnr-display-el {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: #2b6cb0;
+      margin: 12px 0;
+      background: #ebf8ff;
+      padding: 10px 24px;
+      border-radius: 8px;
+      display: inline-block;
+    }
+    .confirmation-detail { font-size: 0.875rem; color: #718096; margin-bottom: 16px; }
+
+    #new-search-btn-el {
+      background: #3182ce;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 24px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #new-search-btn-el:hover { background: #2b6cb0; }
+
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Clotilde</h1>
+    <span>Corporate Travel Assistant</span>
+  </header>
+
+  <!-- Search card -->
+  <div class="card">
+    <div class="search-row">
+      <select data-cy="role-select" id="role-select-el">
+        <option value="Staff">Staff</option>
+        <option value="Manager">Manager</option>
+        <option value="Director">Director</option>
+        <option value="VP">VP</option>
+      </select>
+      <input type="date" data-cy="date-input" id="date-input-el" />
+    </div>
+    <div class="input-row">
+      <input
+        type="text"
+        data-cy="search-input"
+        id="search-input-el"
+        placeholder="e.g. flight Bangkok to Tokyo on business class"
+        autocomplete="off"
+      />
+      <button data-cy="send-btn" id="send-btn-el">Search</button>
+    </div>
+    <div data-cy="error-msg" id="error-msg-el"></div>
+  </div>
+
+  <!-- Results card -->
+  <div class="card" id="results-card" style="display:none;">
+    <div data-cy="results-list" id="results-list-el">
+      <div class="results-header">Available Flights</div>
+      <div id="cards-container"></div>
+      <div data-cy="no-results-msg" id="no-results-msg-el">
+        No flights found. Try a different search.
+      </div>
+    </div>
+    <button data-cy="confirm-btn" id="confirm-btn-el" disabled>Confirm Booking</button>
+
+    <!-- Confirmation screen (inside same card, replaces results) -->
+    <div data-cy="confirmation-screen" id="confirmation-screen-el">
+      <div class="confirmation-icon">✅</div>
+      <div class="confirmation-title">Booking Confirmed!</div>
+      <div>Your PNR:</div>
+      <div data-cy="pnr-display" id="pnr-display-el"></div>
+      <div class="confirmation-detail" id="confirmation-detail-el"></div>
+      <button data-cy="new-search-btn" id="new-search-btn-el">Search Again</button>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:3001';
+
+    // ── State ─────────────────────────────────────────────────────────────────
+    let state = {
+      results: [],
+      selectedFlight: null,
+      isLoading: false,
+    };
+
+    // ── DOM refs ──────────────────────────────────────────────────────────────
+    const roleSelect    = document.getElementById('role-select-el');
+    const dateInput     = document.getElementById('date-input-el');
+    const searchInput   = document.getElementById('search-input-el');
+    const sendBtn       = document.getElementById('send-btn-el');
+    const errorMsg      = document.getElementById('error-msg-el');
+    const resultsCard   = document.getElementById('results-card');
+    const resultsList   = document.getElementById('results-list-el');
+    const cardsContainer= document.getElementById('cards-container');
+    const noResultsMsg  = document.getElementById('no-results-msg-el');
+    const confirmBtn    = document.getElementById('confirm-btn-el');
+    const confScreen    = document.getElementById('confirmation-screen-el');
+    const pnrDisplay    = document.getElementById('pnr-display-el');
+    const confDetail    = document.getElementById('confirmation-detail-el');
+    const newSearchBtn  = document.getElementById('new-search-btn-el');
+
+    // ── Initialise ────────────────────────────────────────────────────────────
+    (function init() {
+      // Default date = today + 7 days
+      const d = new Date();
+      d.setDate(d.getDate() + 7);
+      dateInput.value = d.toISOString().split('T')[0];
+      // Focus search input on load
+      searchInput.focus();
+    })();
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.style.display = 'block';
+    }
+
+    function hideError() {
+      errorMsg.style.display = 'none';
+      errorMsg.textContent = '';
+    }
+
+    function setLoading(on) {
+      state.isLoading = on;
+      sendBtn.disabled = on;
+      sendBtn.innerHTML = on
+        ? '<span class="spinner"></span>Searching…'
+        : 'Search';
+    }
+
+    function resetAll() {
+      state = { results: [], selectedFlight: null, isLoading: false };
+      cardsContainer.innerHTML = '';
+      resultsList.style.display = 'none';
+      confScreen.style.display = 'none';
+      confirmBtn.style.display = 'none';
+      confirmBtn.disabled = true;
+      resultsCard.style.display = 'none';
+      noResultsMsg.style.display = 'none';
+      hideError();
+      searchInput.value = '';
+      searchInput.focus();
+    }
+
+    // Clear error when user types
+    searchInput.addEventListener('input', () => {
+      if (errorMsg.style.display !== 'none') hideError();
+    });
+
+    // Enter key = send
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendBtn.click();
+    });
+
+    // ── Search ────────────────────────────────────────────────────────────────
+    sendBtn.addEventListener('click', async () => {
+      const query = searchInput.value.trim();
+      if (!query) {
+        showError('Please enter a travel request');
+        return;
+      }
+
+      const role = roleSelect.value;
+      const date = dateInput.value;
+
+      hideError();
+      setLoading(true);
+      confScreen.style.display = 'none';
+      confirmBtn.style.display = 'none';
+      cardsContainer.innerHTML = '';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, role, date }),
+        });
+        const json = await res.json();
+
+        if (!res.ok || json.status === 'error') {
+          showError(json.error || 'Something went wrong. Please try again.');
+          resultsCard.style.display = 'none';
+          return;
+        }
+
+        state.results = json.data || [];
+        renderResults(state.results);
+        resultsCard.style.display = 'block';
+        resultsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (err) {
+        showError('Something went wrong. Please try again.');
+        resultsCard.style.display = 'none';
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    // ── Render results ────────────────────────────────────────────────────────
+    function renderResults(flights) {
+      resultsList.style.display = 'block';
+      cardsContainer.innerHTML = '';
+      noResultsMsg.style.display = 'none';
+      confirmBtn.style.display = 'none';
+      confirmBtn.disabled = true;
+      state.selectedFlight = null;
+
+      if (!flights || flights.length === 0) {
+        noResultsMsg.style.display = 'block';
+        return;
+      }
+
+      flights.forEach((f, idx) => {
+        const hasViolation = f.policyFlags && f.policyFlags.length > 0;
+        const card = document.createElement('div');
+        card.className = 'result-card';
+        card.setAttribute('data-cy', 'result-card');
+        card.setAttribute('data-idx', idx);
+
+        card.innerHTML = `
+          <div class="result-card-top">
+            <div>
+              <div data-cy="result-airline" class="result-airline">${escHtml(f.airline)}</div>
+              <div class="result-meta" style="margin-top:4px;">
+                <span data-cy="result-route" class="result-route">${escHtml(f.origin)} → ${escHtml(f.destination)}</span>
+                <span data-cy="result-cabin" class="result-cabin">${escHtml(f.cabinClass)}</span>
+                ${hasViolation ? `<span data-cy="policy-badge" class="policy-badge">POLICY VIOLATION</span>` : ''}
+              </div>
+            </div>
+            <div data-cy="result-price" class="result-price">$${f.price} USD</div>
+          </div>
+          <div style="font-size:0.8rem;color:#718096;margin-bottom:8px;">
+            Departure: ${escHtml(f.departureDate)} &nbsp;|&nbsp; Flight ID: ${escHtml(f.flightId)}
+          </div>
+          <button data-cy="select-btn" class="select-btn" data-idx="${idx}">Select</button>
+        `;
+
+        card.querySelector('.select-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectFlight(idx);
+        });
+        card.addEventListener('click', () => selectFlight(idx));
+
+        cardsContainer.appendChild(card);
+      });
+
+      confirmBtn.style.display = 'block';
+    }
+
+    function selectFlight(idx) {
+      state.selectedFlight = state.results[idx];
+      // Update card styles
+      document.querySelectorAll('.result-card').forEach((c, i) => {
+        c.classList.toggle('selected', i === idx);
+        const btn = c.querySelector('.select-btn');
+        if (btn) btn.classList.toggle('active', i === idx);
+      });
+      confirmBtn.disabled = false;
+    }
+
+    // ── Confirm booking ───────────────────────────────────────────────────────
+    confirmBtn.addEventListener('click', async () => {
+      if (!state.selectedFlight || confirmBtn.disabled) return;
+
+      const role = roleSelect.value;
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Confirming…';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/book`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            flightId: state.selectedFlight.flightId,
+            flightDetails: state.selectedFlight,
+            travelerProfile: { role },
+          }),
+        });
+        const json = await res.json();
+
+        if (!res.ok || json.status === 'error') {
+          showError(json.error || 'Booking failed. Please try again.');
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = 'Confirm Booking';
+          return;
+        }
+
+        const { pnr, booking } = json.data;
+        pnrDisplay.textContent = pnr;
+        confDetail.textContent =
+          `${booking.airline} · ${booking.origin} → ${booking.destination} · ${booking.departureDate}`;
+
+        resultsList.style.display = 'none';
+        confirmBtn.style.display = 'none';
+        confScreen.style.display = 'block';
+      } catch (err) {
+        showError('Booking failed. Please try again.');
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Confirm Booking';
+      }
+    });
+
+    // ── New search ─────────────────────────────────────────────────────────────
+    newSearchBtn.addEventListener('click', resetAll);
+
+    // ── Utility ───────────────────────────────────────────────────────────────
+    function escHtml(str) {
+      if (str == null) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>

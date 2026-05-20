@@ -13,6 +13,9 @@ bookings.json
 chat_registry.json
 approvals.json
 
+# Cypress generated reports (uploaded as CI artifacts, not committed)
+cypress/reports/
+
 # macOS
 .DS_Store
 .gstack/
